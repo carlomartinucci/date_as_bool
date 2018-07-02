@@ -59,4 +59,15 @@ class DateAsBool::Test < ActiveSupport::TestCase
     assert user.verified?
   end
 
+  test "[User] scope not_bool_name" do
+    _verified_user = User.create(verified_at: Time.now)
+    unverified_user = User.create
+    assert User.not_verified.first == unverified_user
+  end
+
+  test "[User] scope bool_name" do
+    verified_user = User.create(verified_at: Time.now)
+    _unverified_user = User.create
+    assert User.verified.first == verified_user
+  end
 end
