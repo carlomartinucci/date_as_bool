@@ -31,39 +31,50 @@ class User < ApplicationRecord
 
 Now you can use `user.verified` or `user.verified?` to test for `verified_at` presence, and `user.verified!` as an alias for `user.update(verified_at: Time.now)`.
 
-You can also reset the field or change it dynamically with `user.update(verified: bool)`. If false, it resets `verified_at` to `nil`.
+You can change the field with `user.update(verified: bool)`. If false, it resets `verified_at` to `nil`, if true, it sets it to `Time.now`.
 
-You get `User.verified`, equivalent to `User.where.not(verified_at: nil)`, and `User.not_verified` equivalent to `User.where(verified_at: nil)`.
+You also get the scopes `User.verified`, equivalent to `User.where.not(verified_at: nil)`, and `User.not_verified` equivalent to `User.where(verified_at: nil)`.
+
+### Methods
+
+* `User.verified == User.where.not(verified_at: nil)`
+* `User.not_verified == User.where(verified_at: nil)`
+* `user.verified == user.verified_at.present?`
+* `user.verified? == user.verified_at.present?`
+* `user.verified! == user.update(verified: true) == user.update(verified_at: Time.now)`
+* `user.update(verified: false) == user.update(verified_at: nil)`
 
 ## Motivation
 
-I found myself quite often with the following design pattern:
+Often, when you need a boolean flag on a model, you can accomplish more by using a datetime attribute instead, that captures the first time the flag turned on. But to recover the simplicity of dealing with a boolean instead of a datetime you have to write some lines of code.
+
+So, I found myself quite often with the following design pattern:
 
 ```ruby
 # == Schema Information
 #
-# Table name: subscriptions
+# Table name: users
 #
-#  id                           :integer          not null, primary key
-#  paid_at                      :datetime
+#  id          :integer          not null, primary key
+#  verified_at :datetime
 #  ...
 #
 
-class Subscription < ApplicationRecord
-  scope :paid,     ->{ where.not(paid_at: nil) }
-  scope :not_paid, ->{ where(paid_at: nil) }
+class User < ApplicationRecord
+  scope :verified,     -> { where.not(verified_at: nil) }
+  scope :not_verified, -> { where(verified_at: nil) }
 
-  def paid=(bool)
-    self.paid_at = bool ? Time.now : nil
+  def verified=(bool)
+    self.verified_at = bool ? Time.now : nil
   end
 
-  alias_method :paid?, :paid
-  def paid
-    paid_at.present?
+  def verified
+    verified_at.present?
   end
+  alias verified? verified
 
-  def paid!
-    paid = true
+  def verified!
+    verified = true
     save
   end
 
@@ -71,10 +82,14 @@ class Subscription < ApplicationRecord
 end
 ```
 
+This way, I can both use `User.verified` and `User.where(verified_at: 2.days.ago..Time.now)`.
+
 DateAsBool abstracts this behaviour in one line.
 
 ## Advanced Usage
-If you want to give a different name to the boolean method, you can specify it as the second argument: `date_as_bool :verified_at` is just a shortcut for `date_as_bool :verified_at, :verified`.
+If you want to give a different name to the boolean method, you can specify it as the second argument.
+
+`date_as_bool :verified_at` is just a shortcut for `date_as_bool :verified_at, :verified`.
 
 ## Contributing
 Bug reports and pull requests are greatly appreciated.
